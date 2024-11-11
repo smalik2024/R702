@@ -75,8 +75,50 @@ traceback()
 mean(x)
 traceback()
 
-# browser() and debug()
-source('MyFunctions.R')
-
-
 debug()
+
+browser()
+
+# browser() and debug()
+source('code/MyFunctions.R')
+
+#Practice ----
+##Using traceback ----
+funPower(2, 3)
+traceback()
+
+## Using line-by-line execution ----
+x = 2; y = 3
+funPower2 <- function(x,y){
+    z <- x^2
+}
+z = x^y
+z
+ra <- funRatio(x, u)
+
+##Using debug ----
+# Mark a function that will be debugged
+debug(funPower)
+funPower(2, 3)
+
+#After finishing debugging
+undebug(funPower)
+
+#Can apply to other functions
+debug(lm)
+lm(x ~ y)
+undebug(lm)
+
+## Using browser ----
+# Place browser () in your code and source the function again
+source('code/MyFunctions.R')
+funPower(2, 3)
+# after fixing errors, remove browser() and source the function again
+source('code/MyFunctions.R')
+funPower(2, 3)
+
+funPower(2, y = 2)
+funPower(2, 3)
+
+
+
