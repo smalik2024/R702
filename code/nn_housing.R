@@ -1,3 +1,10 @@
+# Dependencies
+install.packages("keras")
+install.packages("tensorflow")
+library(keras)
+library(tensorflow)
+tensorflow::install_tensorflow()
+
 rm(list = ls())
 
 library(dplyr)
