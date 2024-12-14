@@ -1,0 +1,99 @@
+---
+title: "MEES-702 Replication"
+format: html
+---
+```{r}
+### Step 1: Load Libraries and Data
+library(ggplot2)
+library(dplyr)
+library(rpart)
+library(boot)
+library(ggpubr)
+
+# Load the dataset
+data <- read.csv("/Users/sabinemalik/Documents/R Class/R702/dataraw/anoxia_jmt3_SL.csv")
+
+### Step 2: Fit Regression Models (Equations 8 and 9)
+# Model for Early Summer Anoxic Volume
+model_early <- lm(EarlySummerAnoxicVol ~ JanAprTNLoad, data = data)
+summary_early <- summary(model_early)
+
+# Model for Late Summer Anoxic Volume
+model_late <- lm(LateSummerAnoxicVol ~ JanMayTNLoad, data = data)
+summary_late <- summary(model_late)
+
+### Step 3: Create Diagnostic Plots
+# Residuals for early summer model
+residuals_early <- residuals(model_early)
+data$residuals_early <- residuals_early
+
+# Residuals for late summer model
+residuals_late <- residuals(model_late)
+data$residuals_late <- residuals_late
+
+# Residual plots
+plot_early_resid <- ggplot(data, aes(x = Year, y = residuals_early)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Residuals for Early Summer Anoxic Volume", y = "Residuals")
+
+plot_late_resid <- ggplot(data, aes(x = Year, y = residuals_late)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Residuals for Late Summer Anoxic Volume", y = "Residuals")
+
+# Autocorrelation plots
+acf_early <- ggAcf(residuals_early) + labs(title = "ACF for Early Summer Residuals")
+acf_late <- ggAcf(residuals_late) + labs(title = "ACF for Late Summer Residuals")
+
+### Step 4: Perform Change Point Analysis Using CART
+# CART for early summer residuals
+tree_early <- rpart(residuals_early ~ Year, data = data, control = rpart.control(minbucket = 4))
+
+# CART for late summer residuals
+tree_late <- rpart(residuals_late ~ Year, data = data, control = rpart.control(minbucket = 4))
+
+### Step 5: Visualize CART Results
+plot_tree_early <- ggplot(data, aes(x = Year, y = residuals_early)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = tree_early$splits[, "index"], linetype = "dashed", color = "red") +
+  labs(title = "CART Results for Early Summer Residuals")
+
+plot_tree_late <- ggplot(data, aes(x = Year, y = residuals_late)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = tree_late$splits[, "index"], linetype = "dashed", color = "red") +
+  labs(title = "CART Results for Late Summer Residuals")
+
+### Step 6: Bootstrap for P-Values
+# Define a statistic function for bootstrap
+boot_stat <- function(data, indices) {
+  d <- data[indices, ]
+  model <- lm(residuals_early ~ Year, data = d)
+  return(coef(model)[2])  # Slope coefficient
+}
+
+# Perform bootstrap for early summer
+set.seed(123)
+boot_early <- boot(data = data, statistic = boot_stat, R = 1000)
+
+# Perform bootstrap for late summer
+boot_stat_late <- function(data, indices) {
+  d <- data[indices, ]
+  model <- lm(residuals_late ~ Year, data = d)
+  return(coef(model)[2])
+}
+
+set.seed(123)
+boot_late <- boot(data = data, statistic = boot_stat_late, R = 1000)
+
+### Step 7: Compile Plots and Save
+# Arrange and save diagnostic plots
+final_plot_early <- ggarrange(plot_early_resid, acf_early, plot_tree_early, ncol = 1, nrow = 3)
+ggsave("Figure3_Early_Summer.pdf", final_plot_early)
+
+final_plot_late <- ggarrange(plot_late_resid, acf_late, plot_tree_late, ncol = 1, nrow = 3)
+ggsave("Figure4_Late_Summer.pdf", final_plot_late)
+
+```
